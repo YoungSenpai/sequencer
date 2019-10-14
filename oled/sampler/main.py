@@ -5,16 +5,13 @@ from PIL import ImageFont
 import time
 import datetime
 from pygame import mixer
-import threading
 
 serial = i2c(port=0, address=0x3C)
 device = ssd1306(serial)
 running = True
+mixer.pre_init(22050, -8, 2, 512, None)
 mixer.init()
 font = ImageFont.load_default()
-
-thread = threading.Thread()
-
 
 bpm = 1
 stepscount = 8
@@ -24,46 +21,59 @@ patterns = []
 class Track:
     name = ''
     steps = []
-    audio 
+    audio = None
 
     def __init__(self, name):
         self.name = name
-        audio = mixer.Sound(path + self.name + ".wav")
-    
 
 class Pattern:
-    tracks = []
-
-
-def render(pattern, el):
-    print("start" + str(el))
-    for x in range(0, len(pattern.tracks[el].steps)):
-        if pattern.tracks[el].steps[x] == 'x':
-            pattern.tracks[el].audio.play()
-            print(str(pattern.tracks[el].name) + " | x")
-        time.sleep(bpm / 120)
-
+    tracks = [] 
 
 
 def main():
     kick = Track("kick")
-    snare = Track("snar")
-    kick.steps = ['x','0','0','0','x','0','0','0']
-    snare.steps =['0','0','x','0','0','0','x','0']
-    kick = mixer.Sound(path + kick.name + ".wav")
-    snare = mixer.Sound(path + snare.name + ".wav")
+    kick.audio = mixer.Sound(path + kick.name + ".wav")
 
+    snare = Track("snar")
+    snare.audio = mixer.Sound(path + snare.name + ".wav")
+
+    kick.steps = ['x','0','0','x','0','0','0','0']
+    snare.steps =['0','0','0','0','x','0','0','0']
+    
     mid = Pattern()
     mid.tracks = [kick, snare]
+
+    x = 0
 
     while running == True:
          
         with canvas(device) as draw:
             draw.text((0, 0), kick.name + " " + " ".join(kick.steps), font=font, fill=255)
             
-            for x in range(0, len(mid.tracks)):
-                thread = threading.Thread(target=render, name="Thread", args=(mid, x))
-                thread.start()
+            draw.text((0, 10), snare.name + " " + " ".join(snare.steps), font=font, fill=255)
+
+            for y in range(len(mid.tracks)):
+                y1 = y
+                y2 = y
+                if (len(mid.tracks)-1) > y:
+                    y2 = y + 1
+                    y1 = y
+                else:
+                    y2 = y
+                    y1 = y - 1
+                if stepscount <= x:
+                    x = 0
+                
+                if str(mid.tracks[y1].steps[x]) == 'x':
+                    mid.tracks[y1].audio.play()
+                    print("kick")
+                if str(mid.tracks[y2].steps[x]) == 'x':
+                    mid.tracks[y2].audio.play()
+                    print("snare")
+                x = x + 1
+                time.sleep(0.2)
+
+               
 
 
 
